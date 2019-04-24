@@ -35,23 +35,31 @@ object Main extends App{
 
     dbConfig.unsafeRunSync()
 
+    val program = new LoyaltyPointsService[IO]
+
     val host = config.getString("server.host")
     val port = config.getString("server.port")
 
     val userRoute = get{
         path("user" / Segment ) { id =>
             logger.info(s"Received request with id: ${id}")
-            val program: IO[User] = new LoyaltyPointsService[IO].getUserPoint(id)
-            val resultAsync: Future[User] = program.unsafeToFuture()
+            val resultAsync: Future[User] = program.getUserPoint(id).unsafeToFuture()
             onComplete(resultAsync) {
                 case Success(user) => complete(user.toString)
-                case Failure(_)        => complete(StatusCodes.NotFound, "User not found")
+                case Failure(_)    => complete(StatusCodes.NotFound, "User not found")
             }
         }
     }
 
-    val addPointRoute = get{
-        ???
+    val addPointRoute = put {
+        path("user" / Segment / "point" / IntNumber) { (id, pointsToAdd) =>
+            logger.info(s"Received request with id: ${id} and points: ${pointsToAdd}")
+            val resultAsync: Future[Unit] = program.addPoints(id, pointsToAdd).unsafeToFuture()
+            onComplete(resultAsync) {
+                case Success(_) => complete(StatusCodes.OK, "User's loyaltyPoints updated!")
+                case Failure(_) => complete(StatusCodes.NotFound, "User not found")
+            }
+        }
     }
 
     val route: Route = userRoute ~ addPointRoute

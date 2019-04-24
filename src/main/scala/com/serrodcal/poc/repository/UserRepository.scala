@@ -6,7 +6,7 @@ import scalikejdbc._
 
 trait UserRepository[F[_]] {
   def findUserById(id: String): F[Option[User]]
-  def updateLoyaltyPointsUser(user: User): F[Unit]
+  def updateLoyaltyPointsUser(id: String, points: Int): F[Unit]
 }
 
 object UserRepository {
@@ -20,7 +20,11 @@ object UserRepository {
         select.from(User as User.u).where.eq(User.u.id, id)
       }.map(rs => User(rs)).single().apply())
 
-    override def updateLoyaltyPointsUser(user: User): F[Unit] = ???
+    override def updateLoyaltyPointsUser(id: String, points: Int): F[Unit] = Sync[F].delay(
+      withSQL{
+        update(User as User.u).set(User.u.loyaltyPoints -> points).where.eq(User.u.id, id)
+      }.update().apply()
+    )
 
   }
 

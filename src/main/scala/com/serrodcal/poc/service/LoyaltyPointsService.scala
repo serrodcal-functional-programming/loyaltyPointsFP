@@ -11,12 +11,20 @@ class LoyaltyPointsService[F[_]: Sync: UserRepository] {
   def getUserPoint(id: String): F[User] = {
     (for{
       maybeUser <- UserRepository[F].findUserById(id)
-      user <- maybeUser.fold[F[User]](Sync[F].raiseError(UserNotFound))(Sync[F].pure)
+      user      <- maybeUser.fold[F[User]](Sync[F].raiseError(UserNotFound))(Sync[F].pure)
     }yield user).handleErrorWith { error =>
       Sync[F].delay(println(s"Error when getUserPoint with id $id")).*>(Sync[F].raiseError(error))
     }
   }
 
-  def addPoints(id: String, pointsToAdd: Int): F[Unit] = ???
+  def addPoints(id: String, pointsToAdd: Int): F[Unit] = {
+    (for{
+      maybeUser <- UserRepository[F].findUserById(id)
+      user      <- maybeUser.fold[F[User]](Sync[F].raiseError(UserNotFound))(Sync[F].pure)
+      unit      <- UserRepository[F].updateLoyaltyPointsUser(user.id, (user.loyaltyPoints + pointsToAdd))
+    }yield unit).handleErrorWith { error =>
+      Sync[F].delay(println(s"Error when addPoints with id $id and pointsToAdd $pointsToAdd")).*>(Sync[F].raiseError(error))
+    }
+  }
 
 }
